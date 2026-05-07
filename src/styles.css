@@ -154,12 +154,12 @@ img {
 }
 
 .brand {
-  font-family: "Qwigley", cursive;
-  font-size: clamp(2.4rem, 4vw, 3.4rem);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1.2rem;
   font-weight: 400;
   line-height: 0.9;
-  letter-spacing: 0;
-  text-transform: none;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   color: var(--text);
   transition: opacity 180ms ease;
 }

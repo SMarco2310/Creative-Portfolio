@@ -166,6 +166,7 @@ function ImageCard({ image, className, onOpen }) {
       type="button"
       className={`frame image-card ${className} ${isLoaded ? "is-loaded" : ""}`}
       onClick={() => onOpen(image)}
+      onContextMenu={(e) => e.preventDefault()}
       aria-label={`Open ${image.alt}`}
       style={{ backgroundColor: placeholderColor }}
     >
@@ -175,7 +176,13 @@ function ImageCard({ image, className, onOpen }) {
         loading="lazy"
         decoding="async"
         onLoad={() => setIsLoaded(true)}
-        style={{ objectPosition: image.position ?? "50% 50%" }}
+        style={{ 
+          objectPosition: image.position ?? "50% 50%",
+          userSelect: 'none', 
+          WebkitUserDrag: 'none'
+        }}
+        onContextMenu={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
       />
     </button>
   );
@@ -253,16 +260,43 @@ function HomePage({ onOpen }) {
           sortBy: { column: 'created_at', order: 'desc' }
         });
         if (data && !error) {
-          const validFiles = data.filter((file) => file.name !== ".emptyFolderPlaceholder");
-          const sortedFiles = validFiles.sort((a, b) => {
-            const aStarred = a.name.startsWith('star_');
-            const bStarred = b.name.startsWith('star_');
-            if (aStarred && !bStarred) return -1;
-            if (!aStarred && bStarred) return 1;
-            return 0;
-          });
+          let validFiles = data.filter((file) => file.name !== ".emptyFolderPlaceholder" && file.name !== "order.json");
+          
+          const { data: orderData } = await supabase.storage.from('portfolio').download('order.json');
+          if (orderData) {
+            try {
+              const orderText = await orderData.text();
+              const orderArray = JSON.parse(orderText);
+              
+              validFiles.sort((a, b) => {
+                const aIndex = orderArray.indexOf(a.name);
+                const bIndex = orderArray.indexOf(b.name);
+                
+                if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                if (aIndex === -1 && bIndex !== -1) return -1;
+                if (bIndex === -1 && aIndex !== -1) return 1;
+                
+                const aStarred = a.name.startsWith('star_');
+                const bStarred = b.name.startsWith('star_');
+                if (aStarred && !bStarred) return -1;
+                if (!aStarred && bStarred) return 1;
+                return 0;
+              });
+            } catch (e) {
+              console.error('Error parsing order.json', e);
+            }
+          } else {
+            validFiles.sort((a, b) => {
+              const aStarred = a.name.startsWith('star_');
+              const bStarred = b.name.startsWith('star_');
+              if (aStarred && !bStarred) return -1;
+              if (!aStarred && bStarred) return 1;
+              return 0;
+            });
+          }
+          
           const classes = ["card-square", "card-tall", "card-vertical", "card-landscape", "card-portrait"];
-          const newImages = sortedFiles.map((file, i) => {
+          const newImages = validFiles.map((file, i) => {
             const {
               data: { publicUrl },
             } = supabase.storage.from("portfolio").getPublicUrl(file.name);
@@ -477,6 +511,15 @@ export function PortfolioApp() {
             <div className="topbar-links">
               <NavLink href="/">portfolio</NavLink>
               <NavLink href="/contact">contact</NavLink>
+              <a 
+                href="https://donate.stripe.com/test_9B67sE5ML8dr18n9gr5os00" 
+                target="_blank" 
+                rel="noreferrer" 
+                className="support-btn"
+                style={{ marginLeft: '1rem' }}
+              >
+                support me
+              </a>
             </div>
             <div className="topbar-actions">
               <a
@@ -532,27 +575,36 @@ export function PortfolioApp() {
                 >
                   contact
                 </NavLink>
-              </div>
-              <div className="menu-actions">
-                <a
-                  className="menu-icon-button"
-                  href="https://instagram.com/ammes_art"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Open Instagram profile"
-                  title="Instagram"
+                <a 
+                  href="https://donate.stripe.com/test_9B67sE5ML8dr18n9gr5os00" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="menu-link"
+                  onClick={() => setMenuOpen(false)}
                 >
-                  <InstagramIcon />
+                  support me
                 </a>
-                <button
-                  type="button"
-                  className="menu-icon-button"
-                  onClick={handleMenuShare}
-                  aria-label="Share portfolio"
-                  title="Share"
-                >
-                  <ShareIcon />
-                </button>
+                <div className="menu-actions" style={{ alignSelf: 'start', paddingTop: '1rem' }}>
+                  <a
+                    className="menu-icon-button"
+                    href="https://instagram.com/ammes_art"
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Open Instagram profile"
+                    title="Instagram"
+                  >
+                    <InstagramIcon />
+                  </a>
+                  <button
+                    type="button"
+                    className="menu-icon-button"
+                    onClick={handleMenuShare}
+                    aria-label="Share portfolio"
+                    title="Share"
+                  >
+                    <ShareIcon />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -571,6 +623,7 @@ export function PortfolioApp() {
           <div
             className="lightbox-panel"
             onClick={(event) => event.stopPropagation()}
+            onContextMenu={(e) => e.preventDefault()}
           >
             <button
               type="button"
@@ -580,7 +633,16 @@ export function PortfolioApp() {
             >
               ×
             </button>
-            <img src={activeImage.src} alt={activeImage.alt} />
+            <img 
+              src={activeImage.src} 
+              alt={activeImage.alt} 
+              style={{
+                userSelect: 'none', 
+                WebkitUserDrag: 'none'
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
+            />
           </div>
         </div>
       ) : null}

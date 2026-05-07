@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,6 +11,9 @@ export default function Admin() {
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const navigate = useNavigate();
+  
+  const dragItem = useRef();
+  const dragOverItem = useRef();
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -42,6 +45,15 @@ export default function Admin() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const saveOrder = async (orderArray) => {
+    try {
+      const blob = new Blob([JSON.stringify(orderArray)], { type: 'application/json' });
+      await supabase.storage.from('portfolio').upload('order.json', blob, { upsert: true });
+    } catch(e) {
+      console.error('Error saving order', e);
+    }
+  };
+
   const fetchImages = async () => {
     const { data, error } = await supabase.storage.from('portfolio').list('', {
       sortBy: { column: 'created_at', order: 'desc' }
@@ -50,19 +62,41 @@ export default function Admin() {
       console.error('Error fetching images:', error);
       return;
     }
-    // Filter out potential empty folders or hidden files
-    const validFiles = data.filter(file => file.name !== '.emptyFolderPlaceholder');
     
-    // Sort starred files to the top
-    const sortedFiles = validFiles.sort((a, b) => {
-      const aStarred = a.name.startsWith('star_');
-      const bStarred = b.name.startsWith('star_');
-      if (aStarred && !bStarred) return -1;
-      if (!aStarred && bStarred) return 1;
-      return 0;
-    });
+    let validFiles = data.filter(file => file.name !== '.emptyFolderPlaceholder' && file.name !== 'order.json');
     
-    setImages(sortedFiles);
+    const { data: orderData } = await supabase.storage.from('portfolio').download('order.json');
+    if (orderData) {
+      try {
+        const orderText = await orderData.text();
+        const orderArray = JSON.parse(orderText);
+        
+        validFiles.sort((a, b) => {
+          const aIndex = orderArray.indexOf(a.name);
+          const bIndex = orderArray.indexOf(b.name);
+          
+          if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+          if (aIndex === -1 && bIndex !== -1) return -1; // new items top
+          if (bIndex === -1 && aIndex !== -1) return 1;
+          
+          const aStarred = a.name.startsWith('star_');
+          const bStarred = b.name.startsWith('star_');
+          if (aStarred && !bStarred) return -1;
+          if (!aStarred && bStarred) return 1;
+          return 0;
+        });
+      } catch(e) { console.error('Error parsing order.json', e); }
+    } else {
+      validFiles.sort((a, b) => {
+        const aStarred = a.name.startsWith('star_');
+        const bStarred = b.name.startsWith('star_');
+        if (aStarred && !bStarred) return -1;
+        if (!aStarred && bStarred) return 1;
+        return 0;
+      });
+    }
+    
+    setImages(validFiles);
   };
 
   const toggleStar = async (name) => {
@@ -73,11 +107,37 @@ export default function Admin() {
       showToast(isStarred ? "Un-starring..." : "Starring...");
       const { error } = await supabase.storage.from('portfolio').move(name, newName);
       if (error) throw error;
+      
+      const newOrderArray = images.map(img => img.name === name ? newName : img.name);
+      await saveOrder(newOrderArray);
+      
       fetchImages();
       showToast(isStarred ? "Removed from favorites." : "Added to favorites! It will appear first.");
     } catch (error) {
       showToast("Failed to update: " + error.message);
     }
+  };
+
+  const dragStart = (e, position) => {
+    dragItem.current = position;
+  };
+
+  const dragEnter = (e, position) => {
+    dragOverItem.current = position;
+  };
+
+  const drop = async () => {
+    const copyListItems = [...images];
+    const dragItemContent = copyListItems[dragItem.current];
+    copyListItems.splice(dragItem.current, 1);
+    copyListItems.splice(dragOverItem.current, 0, dragItemContent);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    setImages(copyListItems);
+    
+    const orderArray = copyListItems.map(i => i.name);
+    await saveOrder(orderArray);
+    showToast("Order saved!");
   };
 
   const handleFileSelect = (event) => {
@@ -127,6 +187,10 @@ export default function Admin() {
     try {
       const { error } = await supabase.storage.from('portfolio').remove([name]);
       if (error) throw error;
+      
+      const newOrderArray = images.filter(img => img.name !== name).map(img => img.name);
+      await saveOrder(newOrderArray);
+      
       fetchImages();
     } catch (error) {
       alert(error.message);
@@ -194,10 +258,18 @@ export default function Admin() {
       </section>
 
       <div style={styles.gallery}>
-        {images.map((img) => {
+        {images.map((img, index) => {
           const { data } = supabase.storage.from('portfolio').getPublicUrl(img.name);
           return (
-            <div key={img.name} style={styles.card}>
+            <div 
+              key={img.name} 
+              style={{ ...styles.card, cursor: 'grab' }}
+              draggable
+              onDragStart={(e) => dragStart(e, index)}
+              onDragEnter={(e) => dragEnter(e, index)}
+              onDragEnd={drop}
+              onDragOver={(e) => e.preventDefault()}
+            >
               <img 
                 src={data.publicUrl} 
                 alt={img.name} 

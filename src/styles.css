@@ -583,14 +583,19 @@ img {
   }
 }
 
-@media (max-width: 920px) {
+@media (max-width: 1024px) {
   .portfolio-masonry {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .footer,
   .contact-profile {
     grid-template-columns: 1fr;
+  }
+
+  .layout {
+    padding-left: 0;
+    padding-right: 0;
   }
 }
 
@@ -612,11 +617,6 @@ img {
   .page-header {
     padding-left: 0.8rem;
     padding-right: 0.8rem;
-  }
-
-  .layout {
-    padding-left: 0;
-    padding-right: 0;
   }
 
   .footer {

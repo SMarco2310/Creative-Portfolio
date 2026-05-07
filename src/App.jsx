@@ -252,6 +252,13 @@ function ShareIcon() {
 function HomePage({ onOpen }) {
   const [visibleCount, setVisibleCount] = useState(6);
   const [supabaseImages, setSupabaseImages] = useState([]);
+  const [isSingleColumn, setIsSingleColumn] = useState(window.innerWidth <= 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsSingleColumn(window.innerWidth <= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     async function loadImages() {
@@ -325,26 +332,41 @@ function HomePage({ onOpen }) {
   return (
     <main className="layout" id="work">
       <section className="portfolio-masonry">
-        <div className="masonry-column">
-          {leftColumnImages.map((image) => (
-            <ImageCard
-              key={image.src}
-              image={image}
-              className={image.className}
-              onOpen={onOpen}
-            />
-          ))}
-        </div>
-        <div className="masonry-column">
-          {rightColumnImages.map((image) => (
-            <ImageCard
-              key={image.src}
-              image={image}
-              className={image.className}
-              onOpen={onOpen}
-            />
-          ))}
-        </div>
+        {isSingleColumn ? (
+          <div className="masonry-column" style={{ width: '100%' }}>
+            {visibleImages.map((image) => (
+              <ImageCard
+                key={image.src}
+                image={image}
+                className={image.className}
+                onOpen={onOpen}
+              />
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="masonry-column">
+              {leftColumnImages.map((image) => (
+                <ImageCard
+                  key={image.src}
+                  image={image}
+                  className={image.className}
+                  onOpen={onOpen}
+                />
+              ))}
+            </div>
+            <div className="masonry-column">
+              {rightColumnImages.map((image) => (
+                <ImageCard
+                  key={image.src}
+                  image={image}
+                  className={image.className}
+                  onOpen={onOpen}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {canLoadMore ? (
@@ -365,7 +387,7 @@ function HomePage({ onOpen }) {
 
       <footer className="footer" id="contact">
         <div className="footer-contact">
-          <p>hello@ammesart.com</p>
+          <p>smarcoeam2310@gmail.com</p>
           <p>Accra, Ghana</p>
         </div>
         <div className="portfolio-copyright">
@@ -400,7 +422,7 @@ function ContactPage() {
           </p>
           <p>
             Email here:{" "}
-            <a href="mailto:hello@ammesart.com">hello@ammesart.com</a>
+            <a href="mailto:smarcoeam2310@gmail.com">smarcoeam2310@gmail.com</a>
           </p>
           <p>
             Follow on insta:{" "}
@@ -512,7 +534,7 @@ export function PortfolioApp() {
               <NavLink href="/">portfolio</NavLink>
               <NavLink href="/contact">contact</NavLink>
               <a 
-                href="https://donate.stripe.com/test_9B67sE5ML8dr18n9gr5os00" 
+                href="https://paystack.com/pay/your_payment_link_here" 
                 target="_blank" 
                 rel="noreferrer" 
                 className="support-btn"
@@ -576,7 +598,7 @@ export function PortfolioApp() {
                   contact
                 </NavLink>
                 <a 
-                  href="https://donate.stripe.com/test_9B67sE5ML8dr18n9gr5os00" 
+                  href="https://paystack.com/pay/your_payment_link_here" 
                   target="_blank" 
                   rel="noreferrer" 
                   className="menu-link"

@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { useAction } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
+  const login = useAction(api.auth.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,17 +16,15 @@ export default function Login() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message);
-    } else {
+    try {
+      const { token } = await login({ email, password });
+      localStorage.setItem('admin_token', token);
       navigate('/admin');
+    } catch {
+      setError('Invalid email or password.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -63,7 +63,7 @@ const styles = {
     alignItems: 'center',
     height: '100vh',
     backgroundColor: '#fbfaf7',
-    fontFamily: '"Courier New", Courier, monospace'
+    fontFamily: '"Courier New", Courier, monospace',
   },
   form: {
     display: 'flex',
@@ -72,18 +72,14 @@ const styles = {
     padding: '2rem',
     background: '#fff',
     border: '1px solid #ddd',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
+    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
   },
-  title: {
-    marginBottom: '1.5rem',
-    textAlign: 'center',
-    color: '#1a1a1a'
-  },
+  title: { marginBottom: '1.5rem', textAlign: 'center', color: '#1a1a1a' },
   input: {
     marginBottom: '1rem',
     padding: '0.8rem',
     border: '1px solid #ccc',
-    fontFamily: 'inherit'
+    fontFamily: 'inherit',
   },
   button: {
     padding: '0.8rem',
@@ -91,11 +87,7 @@ const styles = {
     color: '#fff',
     border: 'none',
     cursor: 'pointer',
-    fontFamily: 'inherit'
+    fontFamily: 'inherit',
   },
-  error: {
-    color: 'red',
-    marginBottom: '1rem',
-    fontSize: '0.9rem'
-  }
+  error: { color: 'red', marginBottom: '1rem', fontSize: '0.9rem' },
 };

@@ -3,3 +3,10 @@ dist
 .DS_Store
 
 .env
+
+.env.local
+
+# Seed files — contain hardcoded credentials, delete after use
+convex/seed.ts
+convex/seedMutation.ts
+

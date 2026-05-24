@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
+import { useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
-import { supabase } from "./supabaseClient";
 
 function toPaleRgb(red, green, blue) {
   const mix = 0.78;
@@ -251,8 +252,8 @@ function ShareIcon() {
 
 function HomePage({ onOpen }) {
   const [visibleCount, setVisibleCount] = useState(6);
-  const [supabaseImages, setSupabaseImages] = useState([]);
   const [isSingleColumn, setIsSingleColumn] = useState(window.innerWidth <= 1024);
+  const rawImages = useQuery(api.images.listImages) ?? [];
 
   useEffect(() => {
     const handleResize = () => setIsSingleColumn(window.innerWidth <= 1024);
@@ -260,69 +261,22 @@ function HomePage({ onOpen }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    async function loadImages() {
-      try {
-        const { data, error } = await supabase.storage.from("portfolio").list('', {
-          sortBy: { column: 'created_at', order: 'desc' }
-        });
-        if (data && !error) {
-          let validFiles = data.filter((file) => file.name !== ".emptyFolderPlaceholder" && file.name !== "order.json");
-          
-          const { data: orderData } = await supabase.storage.from('portfolio').download('order.json');
-          if (orderData) {
-            try {
-              const orderText = await orderData.text();
-              const orderArray = JSON.parse(orderText);
-              
-              validFiles.sort((a, b) => {
-                const aIndex = orderArray.indexOf(a.name);
-                const bIndex = orderArray.indexOf(b.name);
-                
-                if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                if (aIndex === -1 && bIndex !== -1) return -1;
-                if (bIndex === -1 && aIndex !== -1) return 1;
-                
-                const aStarred = a.name.startsWith('star_');
-                const bStarred = b.name.startsWith('star_');
-                if (aStarred && !bStarred) return -1;
-                if (!aStarred && bStarred) return 1;
-                return 0;
-              });
-            } catch (e) {
-              console.error('Error parsing order.json', e);
-            }
-          } else {
-            validFiles.sort((a, b) => {
-              const aStarred = a.name.startsWith('star_');
-              const bStarred = b.name.startsWith('star_');
-              if (aStarred && !bStarred) return -1;
-              if (!aStarred && bStarred) return 1;
-              return 0;
-            });
-          }
-          
-          const classes = ["card-square", "card-tall", "card-vertical", "card-landscape", "card-portrait"];
-          const newImages = validFiles.map((file, i) => {
-            const {
-              data: { publicUrl },
-            } = supabase.storage.from("portfolio").getPublicUrl(file.name);
-            return {
-              src: publicUrl,
-              alt: file.name,
-              position: "50% 50%",
-              className: classes[i % classes.length],
-              placeholder: "#ece7df",
-            };
-          });
-          setSupabaseImages(newImages);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    loadImages();
-  }, []);
+  const classes = ["card-square", "card-tall", "card-vertical", "card-landscape", "card-portrait"];
+
+  // Starred images appear first, then the rest in their saved sortOrder.
+  const sorted = [...rawImages].sort((a, b) => {
+    if (a.starred && !b.starred) return -1;
+    if (!a.starred && b.starred) return 1;
+    return a.sortOrder - b.sortOrder;
+  });
+
+  const supabaseImages = sorted.map((img, i) => ({
+    src: img.url,
+    alt: img.fileName,
+    position: "50% 50%",
+    className: classes[i % classes.length],
+    placeholder: "#ece7df",
+  })).filter((img) => img.src !== null);
 
   const visibleImages = supabaseImages.slice(0, visibleCount);
   const canLoadMore = visibleCount < supabaseImages.length;

@@ -85,62 +85,6 @@ function getDominantPlaceholder(imageSource) {
   });
 }
 
-const images = {
-  top: {
-    src: "/images/portrait-01.jpg",
-    alt: "Editorial still life",
-    position: "50% 46%",
-    placeholder: "#d9dbe0",
-  },
-  bottom: {
-    src: "/images/portrait-06.jpg",
-    alt: "Minimal studio detail",
-    position: "50% 50%",
-    placeholder: "#d9d3d1",
-  },
-  right: {
-    src: "/images/portrait-05.jpg",
-    alt: "Soft portrait in natural light",
-    position: "50% 26%",
-    placeholder: "#d7d7d0",
-  },
-  archiveA: {
-    src: "/images/portrait-02.jpg",
-    alt: "Portrait study",
-    position: "50% 32%",
-    placeholder: "#d8ddd9",
-  },
-  archiveB: {
-    src: "/images/portrait-03.jpg",
-    alt: "Close portrait",
-    position: "50% 36%",
-    placeholder: "#ddd4cf",
-  },
-  archiveC: {
-    src: "/images/portrait-04.jpg",
-    alt: "Editorial movement",
-    position: "52% 38%",
-    placeholder: "#d8d4d0",
-  },
-  archiveD: {
-    src: "/images/portrait-07.jpg",
-    alt: "Quiet fashion frame",
-    position: "50% 40%",
-    placeholder: "#d6dfdc",
-  },
-  moreA: {
-    src: "/images/portrait-08.jpg",
-    alt: "Additional portrait study",
-    position: "50% 34%",
-    placeholder: "#dad8cf",
-  },
-  moreB: {
-    src: "/images/portrait-09.jpg",
-    alt: "Additional editorial frame",
-    position: "50% 35%",
-    placeholder: "#dad5cf",
-  },
-};
 
 function ImageCard({ image, className, onOpen }) {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -488,7 +432,7 @@ export function PortfolioApp() {
               <NavLink href="/">portfolio</NavLink>
               <NavLink href="/contact">contact</NavLink>
               <a 
-                href="https://paystack.com/pay/your_payment_link_here" 
+                href="https://paystack.com/pay/support-ammes-art" 
                 target="_blank" 
                 rel="noreferrer" 
                 className="support-btn"
